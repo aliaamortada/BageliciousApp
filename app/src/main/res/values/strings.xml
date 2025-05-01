@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Meal</string>
+    <string name="app_name">Bagelicious</string>
+    <string name="title_activity_splach">SplachActivity</string>
 </resources>
