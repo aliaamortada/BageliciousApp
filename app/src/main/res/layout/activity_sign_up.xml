@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#6FB8C3"
-    tools:context=".LoginActivity">
+    tools:context=".SignUpActivity">
+
 
     <ImageView
         android:id="@+id/bg_pattern"
@@ -90,7 +91,7 @@
         android:layout_marginTop="40dp"
         android:layout_marginEnd="16dp"
         android:letterSpacing="0.03"
-        android:text="Login"
+        android:text="Sign Up"
         android:textColor="@color/white"
         android:textSize="16sp"
         app:backgroundTint="@color/black"
@@ -108,7 +109,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="18dp"
         android:layout_marginEnd="16dp"
-        android:text="Login with Google"
+        android:text="Sign Up with Google"
         android:textColor="@color/black"
         android:textSize="16sp"
         app:backgroundTint="@android:color/white"
