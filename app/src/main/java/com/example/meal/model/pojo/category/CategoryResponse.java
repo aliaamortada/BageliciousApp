@@ -3,14 +3,13 @@ package com.example.meal.model.pojo.category;
 import java.util.List;
 
 public class CategoryResponse {
-    private List<Category> meals;
+    private List<Category> categories;
 
-    public List<Category> getMeals() {
-        return meals;
+    public List<Category> getCategories() {
+        return categories;
     }
 
-    public void setMeals(List<Category> meals) {
-        this.meals = meals;
+    public void setCategories(List<Category> categories) {
+        this.categories = categories;
     }
 }
-

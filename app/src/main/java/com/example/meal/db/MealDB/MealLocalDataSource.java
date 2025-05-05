@@ -1,4 +1,4 @@
-package com.example.meal.db;
+package com.example.meal.db.MealDB;
 
 import androidx.lifecycle.LiveData;
 

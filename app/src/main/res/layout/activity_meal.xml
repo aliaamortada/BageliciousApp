@@ -1,0 +1,94 @@
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MealActivity">
+
+    <!-- Image with overlayed buttons -->
+    <FrameLayout
+        android:id="@+id/imageContainer"
+        android:layout_width="0dp"
+        android:layout_height="220dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/mealImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop" />
+
+        <!-- Close Button -->
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_margin="16dp"
+            android:background="@drawable/heart_bg_rounded"
+            android:src="@drawable/close"
+            android:contentDescription="Close"
+            android:layout_gravity="top|start" />
+
+        <!-- Favorite Button -->
+        <ImageButton
+            android:id="@+id/btnFavorite"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_margin="16dp"
+            android:background="@drawable/heart_bg_rounded"
+            android:src="@drawable/heart"
+            android:contentDescription="Favorite"
+            android:layout_gravity="top|end" />
+
+        <!-- Calendar Button under Favorite -->
+        <ImageButton
+            android:id="@+id/btnCalendar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="72dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/heart_bg_rounded"
+            android:src="@drawable/calendar"
+            app:iconTint="@null"
+            android:contentDescription="Add to Calendar"
+            android:layout_gravity="top|end" />
+
+    </FrameLayout>
+    <!-- ScrollView holding inner layout -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/imageContainer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Drag Handle -->
+            <View
+                android:id="@+id/dragHandle"
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:layout_gravity="center"
+                android:background="@drawable/drag_handle"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- RecyclerView (optional, or replace with a static list if inside ScrollView) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewMealInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,13 +1,18 @@
 package com.example.meal.model.pojo.ingrediant;
-import java.util.List;
-public class IngrediantResponse {
-    private List<Ingrediant> meals;
 
-    public List<Ingrediant> getMeals() {
-        return meals;
+import com.example.meal.model.pojo.ingrediant.Ingrediant;
+import com.google.gson.annotations.SerializedName;
+import java.util.List;
+
+public class IngrediantResponse {
+    @SerializedName("meals")
+    private List<Ingrediant> ingredients;
+
+    public List<Ingrediant> getIngredients() {
+        return ingredients;
     }
 
-    public void setMeals(List<Ingrediant> meals) {
-        this.meals = meals;
+    public void setIngredients(List<Ingrediant> ingredients) {
+        this.ingredients = ingredients;
     }
 }

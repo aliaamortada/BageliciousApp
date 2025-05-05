@@ -3,6 +3,14 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import com.example.meal.model.pojo.ingrediant.Ingrediant;
+import com.example.meal.model.repository.ingrediant.IngrediantRepository;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Entity(tableName = "meal_table")
 public class Meal {
@@ -61,7 +69,6 @@ public class Meal {
     private String strImageSource;
     private String strCreativeCommonsConfirmed;
     private String dateModified;
-
 
     public String getIdMeal() {
         return idMeal;
@@ -486,4 +493,27 @@ public class Meal {
     public void setDateModified(String dateModified) {
         this.dateModified = dateModified;
     }
+    public List<Ingrediant> getIngredientsList() {
+        List<Ingrediant> list = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            try {
+                Method getIngredientMethod = Meal.class.getMethod("getStrIngredient" + i);
+                String ingredient = (String) getIngredientMethod.invoke(this);
+                Method getMeasureMethod = Meal.class.getMethod("getStrMeasure" + i);
+                String measure = (String) getMeasureMethod.invoke(this);
+                if (ingredient != null && !ingredient.trim().isEmpty()) {
+                    Ingrediant ing = new Ingrediant();
+                    ing.setStrIngredient(ingredient.trim());
+                    ing.setStrMesure(measure != null ? measure.trim() : "");
+                    // Optionally set idIngredient if needed, e.g., ing.setIdIngredient("ing_" + i);
+                    list.add(ing);
+                }
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+        return list;
+    }
+
+
 }

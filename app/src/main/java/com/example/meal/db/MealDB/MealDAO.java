@@ -1,4 +1,4 @@
-package com.example.meal.db;
+package com.example.meal.db.MealDB;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
@@ -20,5 +20,8 @@ public interface MealDAO {
 
     @Query("SELECT * FROM meal_table WHERE idMeal = :id LIMIT 1")
     Meal getMealById(String id);
+
+    @Query("SELECT EXISTS(SELECT 1 FROM meal_table WHERE idMeal = :id)")
+    boolean isFavorite(String id);
 
 }

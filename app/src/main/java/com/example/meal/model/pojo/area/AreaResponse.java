@@ -3,14 +3,13 @@ package com.example.meal.model.pojo.area;
 import java.util.List;
 
 public class AreaResponse {
-    private List<Area> meals;
+    private List<Area> areas; // "meals" is used in the actual API response
 
-    public List<Area> getMeals() {
-        return meals;
+    public List<Area> getAreas() {
+        return areas;
     }
 
-    public void setMeals(List<Area> meals) {
-        this.meals = meals;
+    public void setAreas(List<Area> meals) {
+        this.areas = areas;
     }
 }
-

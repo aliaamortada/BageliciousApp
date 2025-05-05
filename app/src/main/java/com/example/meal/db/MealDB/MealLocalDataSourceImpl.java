@@ -1,4 +1,4 @@
-package com.example.meal.db;
+package com.example.meal.db.MealDB;
 
 import android.content.Context;
 
@@ -6,7 +6,6 @@ import androidx.lifecycle.LiveData;
 
 
 import com.example.meal.model.pojo.meal.Meal;
-import com.example.meal.db.MealDAO;
 
 import java.util.List;
 
@@ -16,8 +15,8 @@ public class MealLocalDataSourceImpl implements MealLocalDataSource {
     private final LiveData<List<Meal>> mealLiveData;
 
     public MealLocalDataSourceImpl(Context context) {
-        AppDataBase appDataBase = AppDataBase.getInstance(context.getApplicationContext());
-        mealDAO = appDataBase.getMealDao();
+        MealDataBase mealDataBase = MealDataBase.getInstance(context.getApplicationContext());
+        mealDAO = mealDataBase.getMealDao();
         mealLiveData = mealDAO.getAllMeals();
     }
 
