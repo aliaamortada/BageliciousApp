@@ -117,8 +117,8 @@ public class MealActivity extends AppCompatActivity {
         // Calendar button: show date picker and save to planned meals
         btnCalendar.setOnClickListener(v -> {
             Calendar today = Calendar.getInstance();
-            new DatePickerDialog(
-                    this,
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    this,R.style.CustomDatePicker,
                     (picker, year, month, day) -> {
                         String date = String.format(
                                 Locale.getDefault(),
@@ -135,8 +135,6 @@ public class MealActivity extends AppCompatActivity {
                             MealLocalDataSourceImpl.getInstance(this)
                                     .insertPlannedMeal(pm);
                             runOnUiThread(() -> {
-                                // Change calendar icon color to indicate success
-                                btnCalendar.setColorFilter(Color.parseColor("#6FB8C3"));
                                 // Show confirmation message
                                 Toast.makeText(this, "Added successfully", Toast.LENGTH_SHORT)
                                         .show();
@@ -146,7 +144,8 @@ public class MealActivity extends AppCompatActivity {
                     today.get(Calendar.YEAR),
                     today.get(Calendar.MONTH),
                     today.get(Calendar.DAY_OF_MONTH)
-            ).show();
+            );
+            datePickerDialog.show();
         });
 
         String mealId = getIntent().getStringExtra("mealId");

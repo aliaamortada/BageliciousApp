@@ -10,9 +10,18 @@ public class Area {
     @NonNull
     @PrimaryKey
     private String strArea;
+    private int idAreaImg;
 
     public Area(@NonNull String strArea) {
         this.strArea = strArea;
+    }
+
+    public void setIdAreaImg(int idAreaImg) {
+        this.idAreaImg = idAreaImg;
+    }
+
+    public int getIdAreaImg() {
+        return idAreaImg;
     }
 
     @NonNull

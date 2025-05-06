@@ -13,4 +13,33 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">12dp</item>
     </style>
+    <!-- Custom DatePicker Style -->
+    <style name="CustomDatePicker" parent="Theme.AppCompat.Light.Dialog">
+        <item name="colorAccent">#6FB8C3</item> <!-- Set the color you want for accent -->
+        <item name="android:colorControlActivated">#6FB8C3</item>
+        <item name="android:textColorPrimary">#000000</item>
+        <item name="android:textColorSecondary">#7F7F7F</item> <!-- Set secondary text color -->
+        <item name="android:windowBackground">#FFFFFF</item>
+        <!-- Make OK & Cancel buttons teal (#6FB8C3) -->
+        <item name="android:buttonBarPositiveButtonStyle">@style/TealButtonText</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/TealButtonText</item>
+    </style>
+
+    <!-- Style for teal button text -->
+    <style name="TealButtonText" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">#6FB8C3</item>
+    </style>
 </resources>
+
+
+
+
+
+
+
+
+
+
+
+
+
