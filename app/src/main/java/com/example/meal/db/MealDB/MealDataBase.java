@@ -6,9 +6,11 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
+import com.example.meal.model.pojo.meal.FavMeal;
 import com.example.meal.model.pojo.meal.Meal;
 
-@Database(entities = {Meal.class}, version = 1, exportSchema = false)
+@Database(entities = {FavMeal.class}, version = 2, exportSchema = false)
+
 public abstract class MealDataBase extends RoomDatabase {
     private static MealDataBase mealDataBase = null;
 

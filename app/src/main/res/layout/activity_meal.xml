@@ -51,8 +51,7 @@
             android:layout_marginTop="72dp"
             android:layout_marginEnd="16dp"
             android:background="@drawable/heart_bg_rounded"
-            android:src="@drawable/calendar"
-            app:iconTint="@null"
+            android:src="@drawable/calendarr"
             android:contentDescription="Add to Calendar"
             android:layout_gravity="top|end" />
 

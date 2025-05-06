@@ -1,5 +1,8 @@
 package com.example.meal;
 
+import android.app.DatePickerDialog;
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,20 +12,27 @@ import android.webkit.WebView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.meal.db.MealDB.MealDataBase;
+import com.example.meal.db.MealDB.MealLocalDataSourceImpl;
 import com.example.meal.model.pojo.ingrediant.Ingrediant;
+import com.example.meal.model.pojo.meal.FavMeal;
 import com.example.meal.model.pojo.meal.Meal;
 import com.example.meal.model.pojo.meal.MealResponse;
+import com.example.meal.model.pojo.meal.PlanMeal;
 import com.example.meal.network.meal.MealService;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 
 import retrofit2.Call;
@@ -34,7 +44,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MealActivity extends AppCompatActivity {
 
     private ImageView mealImage;
-    private ImageButton btnClose, btnFavorite;
+    private ImageButton btnClose, btnFavorite , btnCalendar;
     private RecyclerView recyclerViewMealInfo;
 
     private MealService mealService;
@@ -53,6 +63,7 @@ public class MealActivity extends AppCompatActivity {
         mealImage = findViewById(R.id.mealImage);
         btnClose = findViewById(R.id.btnClose);
         btnFavorite = findViewById(R.id.btnFavorite);
+        btnCalendar = findViewById(R.id.btnCalendar);
         recyclerViewMealInfo = findViewById(R.id.recyclerViewMealInfo);
 
         // Setup DB and Retrofit
@@ -71,20 +82,71 @@ public class MealActivity extends AppCompatActivity {
         ingredientAdapter = new IngredientAdapter();
 
         // Listeners
+        // close listener return to previous page also save and return the state of isFav
         btnClose.setOnClickListener(v -> finish());
+        btnClose.setOnClickListener(v -> {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                boolean isFav = false;
+                if (currentMeal != null) {
+                    isFav = mealDatabase.getMealDao().isFavorite(currentMeal.getIdMeal());
+                }
+                final boolean finalIsFav = isFav;
+                runOnUiThread(() -> {
+                    Intent data = new Intent();
+                    data.putExtra("isFavorite", finalIsFav);
+                    setResult(RESULT_OK, data);
+                    finish();
+                });
+            });
+        });
 
         btnFavorite.setOnClickListener(v -> {
             if (currentMeal == null) return;
             Executors.newSingleThreadExecutor().execute(() -> {
                 boolean isFav = mealDatabase.getMealDao().isFavorite(currentMeal.getIdMeal());
                 if (isFav) {
-                    mealDatabase.getMealDao().deleteMeal(currentMeal);
+                    mealDatabase.getMealDao().deleteFavoriteMeal(new FavMeal(currentMeal));
                     runOnUiThread(() -> btnFavorite.setImageResource(R.drawable.heart));
                 } else {
-                    mealDatabase.getMealDao().insertMeal(currentMeal);
+                    mealDatabase.getMealDao().insertFavoriteMeal(new FavMeal(currentMeal));
                     runOnUiThread(() -> btnFavorite.setImageResource(R.drawable.fav));
                 }
             });
+        });
+
+        // Calendar button: show date picker and save to planned meals
+        btnCalendar.setOnClickListener(v -> {
+            Calendar today = Calendar.getInstance();
+            new DatePickerDialog(
+                    this,
+                    (picker, year, month, day) -> {
+                        String date = String.format(
+                                Locale.getDefault(),
+                                "%04d-%02d-%02d",
+                                year, month + 1, day
+                        );
+                        Executors.newSingleThreadExecutor().execute(() -> {
+                            PlanMeal pm = new PlanMeal(currentMeal, date);
+                            MealLocalDataSourceImpl.getInstance(this)
+                                    .insertPlannedMeal(pm);
+                        });
+                        Executors.newSingleThreadExecutor().execute(() -> {
+                            PlanMeal pm = new PlanMeal(currentMeal, date);
+                            MealLocalDataSourceImpl.getInstance(this)
+                                    .insertPlannedMeal(pm);
+                            runOnUiThread(() -> {
+                                // Change calendar icon color to indicate success
+                                btnCalendar.setColorFilter(Color.parseColor("#6FB8C3"));
+                                // Show confirmation message
+                                Toast.makeText(this, "Added successfully", Toast.LENGTH_SHORT)
+                                        .show();
+                            });
+                        });
+                    },
+                    today.get(Calendar.YEAR),
+                    today.get(Calendar.MONTH),
+                    today.get(Calendar.DAY_OF_MONTH)
+            ).show();
         });
 
         String mealId = getIntent().getStringExtra("mealId");
@@ -92,6 +154,7 @@ public class MealActivity extends AppCompatActivity {
             loadMealDetails(mealId);
         }
     }
+
 
     private void loadMealDetails(String id) {
         mealService.getMealByID(id).enqueue(new Callback<MealResponse>() {

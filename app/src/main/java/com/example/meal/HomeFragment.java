@@ -1,6 +1,8 @@
 package com.example.meal;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,13 +16,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.meal.db.MealDB.MealDataBase;
+import com.example.meal.model.pojo.meal.FavMeal;
 import com.example.meal.model.pojo.meal.Meal;
 import com.example.meal.network.meal.MealService;
 import com.example.meal.model.pojo.meal.MealResponse;
 import com.example.meal.MealActivity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +38,10 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class HomeFragment extends Fragment {
+    private boolean isViewActive = false;
+    private static final String PREFS_NAME = "meal_of_day_prefs";
+    private static final String KEY_DATE = "saved_date";
+    private static final String KEY_MEAL_ID = "saved_meal_id";
 
     private RecyclerView recyclerView;
     private MealAdapter adapter;
@@ -63,6 +73,13 @@ public class HomeFragment extends Fragment {
 
         mealDatabase = MealDataBase.getInstance(requireContext());
 
+        mealDatabase
+                .getMealDao()
+                .getStoredFavoriteMeals()
+                .observe(getViewLifecycleOwner(), favMeals -> {
+                    adapter.notifyDataSetChanged();
+                });
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://www.themealdb.com/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -71,12 +88,26 @@ public class HomeFragment extends Fragment {
 
         loadMealOfTheDay();
         loadTenRandomMeals();
-
+        isViewActive = true;
         return rootView;
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        isViewActive = false; // Reset view active flag
+    }
+
     private void loadMealOfTheDay() {
-        mealService.lookupSingleRandomMeal().enqueue(new Callback<MealResponse>() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+               String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                           .format(new Date());
+               String savedDate = prefs.getString(KEY_DATE, null);
+               String savedId = prefs.getString(KEY_MEAL_ID, null);
+        Call<MealResponse> call = (savedDate != null && savedDate.equals(today) && savedId != null)
+                ? mealService.getMealByID(savedId)
+                : mealService.lookupSingleRandomMeal();
+        call.enqueue(new Callback<MealResponse>() {
             @Override
             public void onResponse(Call<MealResponse> call, Response<MealResponse> response) {
                 if (response.body() != null && response.body().getMeals() != null && !response.body().getMeals().isEmpty()) {
@@ -92,20 +123,30 @@ public class HomeFragment extends Fragment {
                     executorService.execute(() -> {
                         boolean isFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
                         getActivity().runOnUiThread(() -> {
-                            heartIcon.setImageResource(isFav ? R.drawable.fav : R.drawable.heart);
+                            if (isViewActive) { // Check isViewActive
+                                heartIcon.setImageResource(isFav ? R.drawable.fav : R.drawable.heart);
 
-                            heartIcon.setOnClickListener(v -> {
-                                executorService.execute(() -> {
-                                    boolean nowFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
-                                    if (nowFav) {
-                                        mealDatabase.getMealDao().deleteMeal(mealOfTheDay);
-                                        getActivity().runOnUiThread(() -> heartIcon.setImageResource(R.drawable.heart));
-                                    } else {
-                                        mealDatabase.getMealDao().insertMeal(mealOfTheDay);
-                                        getActivity().runOnUiThread(() -> heartIcon.setImageResource(R.drawable.fav));
-                                    }
+                                heartIcon.setOnClickListener(v -> {
+                                    executorService.execute(() -> {
+                                        boolean nowFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
+                                        if (nowFav) {
+                                            mealDatabase.getMealDao().deleteFavoriteMeal(new FavMeal(mealOfTheDay));
+                                            getActivity().runOnUiThread(() -> {
+                                                if (isViewActive) { // Check isViewActive
+                                                    heartIcon.setImageResource(R.drawable.heart);
+                                                }
+                                            });
+                                        } else {
+                                            mealDatabase.getMealDao().insertFavoriteMeal(new FavMeal(mealOfTheDay));
+                                            getActivity().runOnUiThread(() -> {
+                                                if (isViewActive) { // **ADDED**: Check isViewActive
+                                                    heartIcon.setImageResource(R.drawable.fav);
+                                                }
+                                            });
+                                        }
+                                    });
                                 });
-                            });
+                            }
                         });
                     });
 
@@ -114,6 +155,19 @@ public class HomeFragment extends Fragment {
                         intent.putExtra("mealId", mealOfTheDay.getIdMeal());
                         startActivity(intent);
                     });
+  /*                  mealDatabase
+                            .getMealDao()
+                            .getStoredFavoriteMeals()
+                            .observe(getViewLifecycleOwner(), favMeals -> {
+                                boolean isFavNow = false;
+                                for (FavMeal f : favMeals) {
+                                    if (f.getIdMeal().equals(mealOfTheDay.getIdMeal())) {
+                                        isFavNow = true;
+                                        break;
+                                    }
+                                }
+                                heartIcon.setImageResource(isFavNow ? R.drawable.fav : R.drawable.heart);
+                            });*/
                 }
             }
 
@@ -185,10 +239,10 @@ public class HomeFragment extends Fragment {
                         executorService.execute(() -> {
                             boolean nowFav = mealDatabase.getMealDao().isFavorite(meal.getIdMeal());
                             if (nowFav) {
-                                mealDatabase.getMealDao().deleteMeal(meal);
+                                mealDatabase.getMealDao().deleteFavoriteMeal(new FavMeal(meal));
                                 getActivity().runOnUiThread(() -> holder.heartIcon.setImageResource(R.drawable.heart));
                             } else {
-                                mealDatabase.getMealDao().insertMeal(meal);
+                                mealDatabase.getMealDao().insertFavoriteMeal(new FavMeal(meal));
                                 getActivity().runOnUiThread(() -> holder.heartIcon.setImageResource(R.drawable.fav));
                             }
                         });

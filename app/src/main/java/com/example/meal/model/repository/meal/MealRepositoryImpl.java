@@ -4,29 +4,28 @@ import android.content.Context;
 
 import androidx.lifecycle.LiveData;
 
-import com.example.meal.db.MealDB.MealDAO;
-import com.example.meal.db.MealDB.MealDataBase;
+import com.example.meal.db.MealDB.MealLocalDataSource;
+import com.example.meal.db.MealDB.MealLocalDataSourceImpl;
+import com.example.meal.model.pojo.meal.FavMeal;
+import com.example.meal.model.pojo.meal.PlanMeal;
+import com.example.meal.model.pojo.meal.Meal;
 import com.example.meal.network.meal.MealNetworkCallBack;
 import com.example.meal.network.meal.MealRemoteDataSource;
-import com.example.meal.model.pojo.meal.Meal;
 
 import java.util.List;
 
 public class MealRepositoryImpl implements MealRepository {
-    private static MealRepositoryImpl instance;
-    private final MealDAO mealDAO;
-    private final MealRemoteDataSource mealRemoteDataSource;
-    private final LiveData<List<Meal>> mealLiveData;
 
-    // Private constructor for Singleton pattern
+    private static MealRepositoryImpl instance;
+
+    private final MealRemoteDataSource mealRemoteDataSource;
+    private final MealLocalDataSource mealLocalDataSource;
+
     private MealRepositoryImpl(Context context, MealRemoteDataSource mealRemoteDataSource) {
-        MealDataBase mealDataBase = MealDataBase.getInstance(context.getApplicationContext());
-        mealDAO = mealDataBase.getMealDao();
         this.mealRemoteDataSource = mealRemoteDataSource;
-        mealLiveData = mealDAO.getAllMeals();
+        this.mealLocalDataSource = MealLocalDataSourceImpl.getInstance(context);
     }
 
-    // Singleton method to get the instance of the repository
     public static MealRepositoryImpl getInstance(Context context, MealRemoteDataSource mealRemoteDataSource) {
         if (instance == null) {
             instance = new MealRepositoryImpl(context, mealRemoteDataSource);
@@ -34,53 +33,71 @@ public class MealRepositoryImpl implements MealRepository {
         return instance;
     }
 
+    // ===== Favorite Meals =====
     @Override
-    public LiveData<List<Meal>> getStoredMeals() {
-        return mealLiveData;
+    public LiveData<List<FavMeal>> getStoredFavoriteMeals() {
+        return mealLocalDataSource.getStoredFavoriteMeals();
     }
 
     @Override
-    public void searchMealByName(MealNetworkCallBack mealNetworkCallback, String mealName) {
-        mealRemoteDataSource.getMealByName(mealName, mealNetworkCallback);
+    public void insertFavoriteMeal(FavMeal meal) {
+        mealLocalDataSource.insertFavoriteMeal(meal);
     }
 
     @Override
-    public void searchMealByID(MealNetworkCallBack mealNetworkCallback, String mealID) {
-        mealRemoteDataSource.getMealByID(mealID, mealNetworkCallback);
+    public void deleteFavoriteMeal(FavMeal meal) {
+        mealLocalDataSource.deleteFavoriteMeal(meal);
+    }
+
+    // ===== Planned Meals =====
+    @Override
+    public LiveData<List<PlanMeal>> getStoredPlannedMeals() {
+        return mealLocalDataSource.getStoredPlannedMeals();
     }
 
     @Override
-    public void getSingleRandomMeal(MealNetworkCallBack mealNetworkCallback, Boolean isSingle) {
-        mealRemoteDataSource.getRandomMeal(mealNetworkCallback);
+    public void insertPlannedMeal(PlanMeal meal) {
+        mealLocalDataSource.insertPlannedMeal(meal);
     }
 
     @Override
-    public void getMealsByFirstLetter(MealNetworkCallBack mealNetworkCallback, String letter) {
-        mealRemoteDataSource.getMealsByFirstLetter(letter, mealNetworkCallback);
+    public void deletePlannedMeal(PlanMeal meal) {
+        mealLocalDataSource.deletePlannedMeal(meal);
+    }
+
+    // ===== Remote Meal Operations =====
+    @Override
+    public void searchMealByName(MealNetworkCallBack callback, String mealName) {
+        mealRemoteDataSource.getMealByName(mealName, callback);
     }
 
     @Override
-    public void filterByIngredient(MealNetworkCallBack mealNetworkCallback, String ingredient) {
-        mealRemoteDataSource.filterByIngredient(ingredient, mealNetworkCallback);
+    public void searchMealByID(MealNetworkCallBack callback, String mealID) {
+        mealRemoteDataSource.getMealByID(mealID, callback);
     }
 
     @Override
-    public void filterByCategory(MealNetworkCallBack mealNetworkCallback, String category) {
-        mealRemoteDataSource.filterByCategory(category, mealNetworkCallback);
+    public void getSingleRandomMeal(MealNetworkCallBack callback, Boolean isSingle) {
+        mealRemoteDataSource.getRandomMeal(callback);
     }
 
     @Override
-    public void filterByArea(MealNetworkCallBack mealNetworkCallback, String area) {
-        mealRemoteDataSource.filterByArea(area, mealNetworkCallback);
+    public void getMealsByFirstLetter(MealNetworkCallBack callback, String letter) {
+        mealRemoteDataSource.getMealsByFirstLetter(letter, callback);
     }
 
     @Override
-    public void insertMeal(Meal meal) {
-        new Thread(() -> mealDAO.insertMeal(meal)).start();
+    public void filterByIngredient(MealNetworkCallBack callback, String ingredient) {
+        mealRemoteDataSource.filterByIngredient(ingredient, callback);
     }
 
     @Override
-    public void deleteMeal(Meal meal) {
-        new Thread(() -> mealDAO.deleteMeal(meal)).start();
+    public void filterByCategory(MealNetworkCallBack callback, String category) {
+        mealRemoteDataSource.filterByCategory(category, callback);
+    }
+
+    @Override
+    public void filterByArea(MealNetworkCallBack callback, String area) {
+        mealRemoteDataSource.filterByArea(area, callback);
     }
 }
