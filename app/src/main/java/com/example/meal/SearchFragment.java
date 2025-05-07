@@ -1,5 +1,6 @@
 package com.example.meal;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ImageView;
+import androidx.appcompat.widget.SearchView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -50,9 +52,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class SearchFragment extends Fragment {
 
     private TabLayout tabLayout;
-    private TextInputEditText etSearch;
+    private SearchView searchView;
+
     private RecyclerView rvResults;
     private SearchAdapter adapter;
+
 
     // Retrofit services
     private MealService mealService;
@@ -63,20 +67,21 @@ public class SearchFragment extends Fragment {
     // Data sources
     private final List<String> mealNames       = new ArrayList<>();
     private final List<Category> categories    = new ArrayList<>();
-    private final List<Area> areaNames         = new ArrayList<>();
+    private  List<Area> areaNames         = new ArrayList<>();
     private final List<String> ingredientNames = new ArrayList<>();
+    private final List<Area> areaList = new ArrayList<>();
+
     // Map area name -> drawable resource
-    private final Map<String,Integer> areaFlagMap = new HashMap<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_search, container, false);
 
         tabLayout = root.findViewById(R.id.tabLayout);
-        etSearch  = root.findViewById(R.id.etSearch);
+        searchView = root.findViewById(R.id.searchView);
         rvResults = root.findViewById(R.id.rvSearchResults);
 
-        setupAreaFlagMap();
+        setupAreaList();
         adapter = new SearchAdapter();
         rvResults.setLayoutManager(new GridLayoutManager(getContext(), 3));
         rvResults.setAdapter(adapter);
@@ -91,31 +96,34 @@ public class SearchFragment extends Fragment {
         ingrediantService = retrofit.create(IngrediantService.class);
 
         loadCategories();
-        loadAreas();
         loadIngredients();
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override public void onTabSelected(TabLayout.Tab tab) {
-                etSearch.setText("");
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                searchView.setQuery("", false); // clear search text
+                searchView.clearFocus();        // remove focus so keyboard hides
+
                 switch (tab.getPosition()) {
                     case 0: // Meal
                         adapter.setItems(mealNames);
-                        etSearch.setHint("Search by meal...");
+                        searchView.setQueryHint("Search by meal...");
                         break;
                     case 1: // Category
                         adapter.setItems(categories);
-                        etSearch.setHint("Search by category...");
+                        searchView.setQueryHint("Search by category...");
                         break;
                     case 2: // Area
-                        adapter.setItems(areaNames);
-                        etSearch.setHint("Search by area...");
+                        loadAreas();
+                        searchView.setQueryHint("Search by area...");
                         break;
                     case 3: // Ingredient
                         adapter.setItems(ingredientNames);
-                        etSearch.setHint("Search by ingredient...");
+                        searchView.setQueryHint("Search by ingredient...");
                         break;
                 }
             }
+
             @Override public void onTabUnselected(TabLayout.Tab tab) {}
             @Override public void onTabReselected(TabLayout.Tab tab) {
                 onTabSelected(tab);
@@ -123,50 +131,126 @@ public class SearchFragment extends Fragment {
         });
         tabLayout.getTabAt(0).select();
 
-        etSearch.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
-                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                performMealSearch(etSearch.getText().toString().trim());
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                handleSearch(query.trim());
                 return true;
             }
-            return false;
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                handleSearch(newText.trim());
+                return true;
+            }
         });
+
+
 
         return root;
     }
-    // Build areaFlagMap using your Area names directly—no Country class needed
-    private void setupAreaFlagMap() {
-        areaFlagMap.clear();
-        areaFlagMap.put("Egyptian",    R.drawable.egypt_large);
-        areaFlagMap.put("American",    R.drawable.america_large);
-        areaFlagMap.put("British",     R.drawable.british_large);
-        areaFlagMap.put("Canadian",    R.drawable.canada_large);
-        areaFlagMap.put("Chinese",     R.drawable.china_large);
-        areaFlagMap.put("Croatian",    R.drawable.croatia_large);
-        areaFlagMap.put("Dutch",       R.drawable.netherlands_large);
-        areaFlagMap.put("Filipino",    R.drawable.phillippines_large);
-        areaFlagMap.put("French",      R.drawable.france_large);
-        areaFlagMap.put("Greek",       R.drawable.greece_large);
-        areaFlagMap.put("Indian",      R.drawable.india_large);
-        areaFlagMap.put("Irish",       R.drawable.ireland_large);
-        areaFlagMap.put("Italian",     R.drawable.italy_large);
-        areaFlagMap.put("Jamaican",    R.drawable.jamaica_large);
-        areaFlagMap.put("Japanese",    R.drawable.japan_large);
-        areaFlagMap.put("Kenyan",      R.drawable.kenya_large);
-        areaFlagMap.put("Malaysian",   R.drawable.malaysia_large);
-        areaFlagMap.put("Mexican",     R.drawable.mexico_large);
-        areaFlagMap.put("Moroccan",    R.drawable.morocco_large);
-        areaFlagMap.put("Polish",      R.drawable.poland_large);
-        areaFlagMap.put("Portuguese",  R.drawable.portugal_large);
-        areaFlagMap.put("Russian",     R.drawable.russia_large);
-        areaFlagMap.put("Spanish",     R.drawable.spain_large);
-        areaFlagMap.put("Thai",        R.drawable.thailand_large);
-        areaFlagMap.put("Tunisian",    R.drawable.tunisia_large);
-        areaFlagMap.put("Turkish",     R.drawable.turkey_large);
-        areaFlagMap.put("Ukrainian",   R.drawable.ukraine_flag);
-        areaFlagMap.put("Uruguayan",   R.drawable.uruguay_large);
-        areaFlagMap.put("Vietnamese",  R.drawable.vietnam_large);
+    private void fetchMealsByCategory(String category) {
+        mealService.getMealsByCategory(category).enqueue(new Callback<MealResponse>() {
+            @Override public void onResponse(Call<MealResponse> call, Response<MealResponse> resp) {
+                if (resp.body() != null && resp.body().getMeals() != null) {
+                    adapter.setMeals(resp.body().getMeals());
+                }
+            }
+            @Override public void onFailure(Call<MealResponse> call, Throwable t) {}
+        });
     }
+
+    private void fetchMealsByArea(String area) {
+        mealService.getMealsByArea(area).enqueue(new Callback<MealResponse>() {
+            @Override public void onResponse(Call<MealResponse> call, Response<MealResponse> resp) {
+                if (resp.body() != null && resp.body().getMeals() != null) {
+                    adapter.setMeals(resp.body().getMeals());
+                }
+            }
+            @Override public void onFailure(Call<MealResponse> call, Throwable t) {}
+        });
+    }
+
+    private void fetchMealsByIngredient(String ingredient) {
+        mealService.getMealsByIngredient(ingredient).enqueue(new Callback<MealResponse>() {
+            @Override public void onResponse(Call<MealResponse> call, Response<MealResponse> resp) {
+                if (resp.body() != null && resp.body().getMeals() != null) {
+                    adapter.setMeals(resp.body().getMeals());
+                }
+            }
+            @Override public void onFailure(Call<MealResponse> call, Throwable t) {}
+        });
+    }
+
+    private void handleSearch(String query) {
+        int selectedTab = tabLayout.getSelectedTabPosition();
+
+        if (query.isEmpty()) {
+            adapter.setItems(new ArrayList<>());
+            return;
+        }
+
+        if (selectedTab == 0) {
+            performMealSearch(query);
+        } else if (selectedTab == 1) {
+            List<Category> filtered = new ArrayList<>();
+            for (Category c : categories) {
+                if (c.getStrCategory().toLowerCase().contains(query.toLowerCase())) {
+                    filtered.add(c);
+                }
+            }
+            adapter.setItems(filtered);
+        } else if (selectedTab == 2) {
+            List<Area> filtered = new ArrayList<>();
+            for (Area a : areaList) {
+                if (a.getStrArea().toLowerCase().contains(query.toLowerCase())) {
+                    filtered.add(a);
+                }
+            }
+            adapter.setItems(filtered);
+        } else if (selectedTab == 3) {
+            List<String> filtered = new ArrayList<>();
+            for (String ing : ingredientNames) {
+                if (ing.toLowerCase().contains(query.toLowerCase())) {
+                    filtered.add(ing);
+                }
+            }
+            adapter.setItems(filtered);
+        }
+    }
+
+    private void setupAreaList() {
+        areaList.add(new Area("Egyptian", R.drawable.egypt_large));
+        areaList.add(new Area("American", R.drawable.america_large));
+        areaList.add(new Area("British", R.drawable.british_large));
+        areaList.add(new Area("Canadian", R.drawable.canada_large));
+        areaList.add(new Area("Chinese", R.drawable.china_large));
+        areaList.add(new Area("Croatian", R.drawable.croatia_large));
+        areaList.add(new Area("Dutch", R.drawable.netherlands_large));
+        areaList.add(new Area("Filipino", R.drawable.phillippines_large));
+        areaList.add(new Area("French", R.drawable.france_large));
+        areaList.add(new Area("Greek", R.drawable.greece_large));
+        areaList.add(new Area("Indian", R.drawable.india_large));
+        areaList.add(new Area("Irish", R.drawable.ireland_large));
+        areaList.add(new Area("Italian", R.drawable.italy_large));
+        areaList.add(new Area("Jamaican", R.drawable.jamaica_large));
+        areaList.add(new Area("Japanese", R.drawable.japan_large));
+        areaList.add(new Area("Kenyan", R.drawable.kenya_large));
+        areaList.add(new Area("Malaysian", R.drawable.malaysia_large));
+        areaList.add(new Area("Mexican", R.drawable.mexico_large));
+        areaList.add(new Area("Moroccan", R.drawable.morocco_large));
+        areaList.add(new Area("Polish", R.drawable.poland_large));
+        areaList.add(new Area("Portuguese", R.drawable.portugal_large));
+        areaList.add(new Area("Russian", R.drawable.russia_large));
+        areaList.add(new Area("Spanish", R.drawable.spain_large));
+        areaList.add(new Area("Thai", R.drawable.thailand_large));
+        areaList.add(new Area("Tunisian", R.drawable.tunisia_large));
+        areaList.add(new Area("Turkish", R.drawable.turkey_large));
+        areaList.add(new Area("Ukrainian", R.drawable.ukraine_flag));
+        areaList.add(new Area("Uruguayan", R.drawable.uruguay_large));
+        areaList.add(new Area("Vietnamese", R.drawable.vietnam_large));
+    }
+
 
     private void loadCategories() {
         categoryService.getAllCategories().enqueue(new Callback<CategoryResponse>() {
@@ -184,19 +268,8 @@ public class SearchFragment extends Fragment {
     }
 
     private void loadAreas() {
-        areaService.getAllAreas().enqueue(new Callback<AreaResponse>() {
-            @Override public void onResponse(Call<AreaResponse> call, Response<AreaResponse> resp) {
-                if (resp.body() != null && resp.body().getAreas() != null) {
-                    Log.d("AREA_DEBUG", "Loaded areas: " + resp.body().getAreas().size());
-                    areaNames.clear();
-                    areaNames.addAll(resp.body().getAreas());
-                    if (tabLayout.getSelectedTabPosition() == 2) {
-                        adapter.setItems(areaNames);
-                    }
-                }
-            }
-            @Override public void onFailure(Call<AreaResponse> c, Throwable t) {}
-        });
+        Log.i("LoadingAreas","hello");
+        adapter.setItems(areaList);
     }
 
     private void loadIngredients() {
@@ -217,25 +290,30 @@ public class SearchFragment extends Fragment {
     }
 
     private void performMealSearch(String query) {
-        mealNames.clear();
+        // 🔸 Change: List now holds Meal objects instead of just names
+        List<Meal> meals = new ArrayList<>();
+
         if (query.isEmpty()) {
-            adapter.setItems(mealNames);
+            adapter.setMeals(meals);  // 🔸 Updated to pass Meal list
             return;
         }
+
         mealService.getMealByName(query).enqueue(new Callback<MealResponse>() {
-            @Override public void onResponse(Call<MealResponse> call, Response<MealResponse> resp) {
+            @Override
+            public void onResponse(Call<MealResponse> call, Response<MealResponse> resp) {
                 if (resp.body() != null && resp.body().getMeals() != null) {
-                    for (Meal m : resp.body().getMeals()) {
-                        mealNames.add(m.getStrMeal());
-                    }
+                    meals.addAll(resp.body().getMeals());  // 🔸 Add full Meal objects
                 }
-                adapter.setItems(mealNames);
+                adapter.setMeals(meals);  // 🔸 Updated to pass Meal list
             }
-            @Override public void onFailure(Call<MealResponse> call, Throwable t) {
-                adapter.setItems(mealNames);
+
+            @Override
+            public void onFailure(Call<MealResponse> call, Throwable t) {
+                adapter.setMeals(meals);  // 🔸 Updated to pass empty Meal list
             }
         });
     }
+
 
     /**
      * Our generic adapter holds either:
@@ -244,9 +322,19 @@ public class SearchFragment extends Fragment {
      */
     private class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.VH> {
         private List<?> items = new ArrayList<>();
+        private boolean showingMeals = false;
+        private final List<Meal> mealResults = new ArrayList<>();
 
         void setItems(List<?> data) {
             items = data;
+            showingMeals = (data != null && !data.isEmpty() && data.get(0) instanceof Meal);
+            notifyDataSetChanged();
+        }
+
+        void setMeals(List<Meal> meals) {
+            mealResults.clear();
+            mealResults.addAll(meals);
+            showingMeals = true;
             notifyDataSetChanged();
         }
 
@@ -261,48 +349,51 @@ public class SearchFragment extends Fragment {
         public void onBindViewHolder(@NonNull VH holder, int pos) {
             int tab = tabLayout.getSelectedTabPosition();
 
-            if (tab == 1) {
-                // Category tab
-                Category cat = (Category) items.get(pos);
-                holder.txtItemName.setText(cat.getStrCategory());
+            if (showingMeals) {
+                Meal meal = mealResults.get(pos);
+                holder.txtItemName.setText(meal.getStrMeal());
                 Glide.with(holder.imgItem.getContext())
-                        .load(cat.getStrCategoryThumb())
+                        .load(meal.getStrMealThumb())
                         .into(holder.imgItem);
-            } else if (tab == 2) {
-                // Area tab
-                Area area = (Area) items.get(pos);
-                holder.txtItemName.setText(area.getStrArea());
-                Integer flagRes = areaFlagMap.get(area.getStrArea());
-                Glide.with(holder.imgItem.getContext())
-                        .load(flagRes)
-                        .into(holder.imgItem);
-//                if (flagRes != null) {
-//                    holder.imgItem.setImageResource(flagRes);
-//                }
+
+                holder.itemView.setOnClickListener(v -> {
+                    Intent intent = new Intent(getActivity(), MealActivity.class);
+                    intent.putExtra("mealId", meal.getIdMeal());
+                    startActivity(intent);
+                });
             } else {
-                // Meals (tab 0) or Ingredients (tab 3)
-                String name = (String) items.get(pos);
-                holder.txtItemName.setText(name);
-                if (tab == 3) {
+                holder.itemView.setOnClickListener(null); // remove click
+                if (tab == 1) {
+                    Category cat = (Category) items.get(pos);
+                    holder.txtItemName.setText(cat.getStrCategory());
+                    Glide.with(holder.imgItem.getContext())
+                            .load(cat.getStrCategoryThumb())
+                            .into(holder.imgItem);
+                    holder.itemView.setOnClickListener(v -> fetchMealsByCategory(cat.getStrCategory()));
+                } else if (tab == 2) {
+                    Area area = (Area) items.get(pos);
+                    holder.txtItemName.setText(area.getStrArea());
+                    holder.imgItem.setImageResource(area.getIdAreaImg());
+                    holder.itemView.setOnClickListener(v -> fetchMealsByArea(area.getStrArea()));
+                } else if (tab == 3) {
+                    String ing = (String) items.get(pos);
+                    holder.txtItemName.setText(ing);
                     String url = "https://www.themealdb.com/images/ingredients/"
-                            + name.replace(" ", "%20") + "-Small.png";
+                            + ing.replace(" ", "%20") + "-Small.png";
                     Glide.with(holder.imgItem.getContext()).load(url).into(holder.imgItem);
+                    holder.itemView.setOnClickListener(v -> fetchMealsByIngredient(ing));
                 }
             }
         }
 
-        @Override public int getItemCount() {
-            if(items != null) {
-                return items.size();
-            } else {
-                return 0;
-            }
+        @Override
+        public int getItemCount() {
+            return showingMeals ? mealResults.size() : (items != null ? items.size() : 0);
         }
 
         class VH extends RecyclerView.ViewHolder {
             ImageView imgItem;
             TextView txtItemName;
-
             VH(View itemView) {
                 super(itemView);
                 imgItem     = itemView.findViewById(R.id.imgItem);

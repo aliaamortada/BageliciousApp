@@ -149,11 +149,11 @@ public class MealActivity extends AppCompatActivity {
         });
 
         String mealId = getIntent().getStringExtra("mealId");
+        Log.d("MealActivity", "Received Meal ID: " + mealId); // ✅ Log the received ID
         if (mealId != null) {
             loadMealDetails(mealId);
         }
     }
-
 
     private void loadMealDetails(String id) {
         mealService.getMealByID(id).enqueue(new Callback<MealResponse>() {
