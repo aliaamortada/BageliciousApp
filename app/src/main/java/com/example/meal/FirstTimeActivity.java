@@ -3,13 +3,17 @@ package com.example.meal;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class FirstTimeActivity extends AppCompatActivity {
-
+    private FirebaseAuth mAuth;
     private MaterialButton btnLogin;
     private TextView laterTextView;
     private TextView createNewAccountTextView;
@@ -23,10 +27,17 @@ public class FirstTimeActivity extends AppCompatActivity {
         laterTextView = findViewById(R.id.later);
         createNewAccountTextView = findViewById(R.id.createNewAccount);
 
+        mAuth = FirebaseAuth.getInstance();
 
-        // When the "Later" button is clicked, go to HomeFragment
+        // When the "Later" button is clicked, sign in anonymously
         laterTextView.setOnClickListener(v -> {
-           // navigateToHomeFragment();
+                            FirebaseUser guestUser = mAuth.getCurrentUser();
+                            Toast.makeText(this, "Signed in as Guest", Toast.LENGTH_SHORT).show();
+
+                            // Navigate to main/home screen
+                            Intent homeIntent = new Intent(FirstTimeActivity.this, MainActivity.class); // Or HomeActivity
+                            startActivity(homeIntent);
+                            finish();
         });
 
         // When the "Login" button is clicked, go to LoginActivity
@@ -43,19 +54,6 @@ public class FirstTimeActivity extends AppCompatActivity {
             finish();
         });
     }
-//
-//    // Method to navigate to HomeFragment
-//    private void navigateToHomeFragment() {
-//        // Check if the fragment is already in the fragment manager
-//        HomeFragment homeFragment = (HomeFragment) getSupportFragmentManager().findFragmentByTag(HomeFragment.class.getSimpleName());
-//
-//        if (homeFragment == null) {
-//            homeFragment = new HomeFragment();
-//            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-//            transaction.replace(R.id.main, homeFragment, HomeFragment.class.getSimpleName());
-//            transaction.addToBackStack(null);
-//            transaction.commit();
-//        }
-//    }
+
 
 }

@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -21,6 +22,8 @@ import com.example.meal.model.pojo.meal.Meal;
 import com.example.meal.network.meal.MealService;
 import com.example.meal.model.pojo.meal.MealResponse;
 import com.example.meal.MealActivity;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.auth.User;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -104,14 +107,23 @@ public class HomeFragment extends Fragment {
                            .format(new Date());
                String savedDate = prefs.getString(KEY_DATE, null);
                String savedId = prefs.getString(KEY_MEAL_ID, null);
-        Call<MealResponse> call = (savedDate != null && savedDate.equals(today) && savedId != null)
+        boolean shouldUseCached = savedDate != null && savedDate.equals(today) && savedId != null;
+        Call<MealResponse> call = shouldUseCached
                 ? mealService.getMealByID(savedId)
                 : mealService.lookupSingleRandomMeal();
         call.enqueue(new Callback<MealResponse>() {
             @Override
             public void onResponse(Call<MealResponse> call, Response<MealResponse> response) {
+                if (!isAdded() || getView() == null) return;
                 if (response.body() != null && response.body().getMeals() != null && !response.body().getMeals().isEmpty()) {
                     mealOfTheDay = response.body().getMeals().get(0);
+
+                    if (!shouldUseCached) {
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putString(KEY_DATE, today);
+                        editor.putString(KEY_MEAL_ID, mealOfTheDay.getIdMeal());
+                        editor.apply();
+                    }
 
                     mealName.setText(mealOfTheDay.getStrMeal());
                     mealArea.setText(mealOfTheDay.getStrArea());
@@ -120,36 +132,52 @@ public class HomeFragment extends Fragment {
                             .load(mealOfTheDay.getStrMealThumb())
                             .into(mealImage);
 
+                    // Check initial favorite status
                     executorService.execute(() -> {
                         boolean isFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
-                        getActivity().runOnUiThread(() -> {
-                            if (isViewActive) { // Check isViewActive
+                        requireActivity().runOnUiThread(() -> {
+                            if (isViewActive) {
                                 heartIcon.setImageResource(isFav ? R.drawable.fav : R.drawable.heart);
-
-                                heartIcon.setOnClickListener(v -> {
-                                    executorService.execute(() -> {
-                                        boolean nowFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
-                                        if (nowFav) {
-                                            mealDatabase.getMealDao().deleteFavoriteMeal(new FavMeal(mealOfTheDay));
-                                            getActivity().runOnUiThread(() -> {
-                                                if (isViewActive) { // Check isViewActive
-                                                    heartIcon.setImageResource(R.drawable.heart);
-                                                }
-                                            });
-                                        } else {
-                                            mealDatabase.getMealDao().insertFavoriteMeal(new FavMeal(mealOfTheDay));
-                                            getActivity().runOnUiThread(() -> {
-                                                if (isViewActive) { // **ADDED**: Check isViewActive
-                                                    heartIcon.setImageResource(R.drawable.fav);
-                                                }
-                                            });
-                                        }
-                                    });
-                                });
                             }
                         });
                     });
 
+                    // Set up click listener
+                    heartIcon.setOnClickListener(v -> {
+                        FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+                        if (user == null ) {
+
+                            startActivity(new Intent(requireContext(), FirstTimeActivity.class));
+                            Toast.makeText(requireContext(), "You must login first", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        executorService.execute(() -> {
+                            boolean isCurrentlyFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
+                            if (isCurrentlyFav) {
+                                mealDatabase.getMealDao().deleteFavoriteMeal(new FavMeal(mealOfTheDay));
+                            } else {
+                                mealDatabase.getMealDao().insertFavoriteMeal(new FavMeal(mealOfTheDay));
+                            }
+                        });
+                    });
+
+                    if (isAdded()) {
+                        mealDatabase.getMealDao()
+                                .getStoredFavoriteMeals()
+                                .observe(getViewLifecycleOwner(), favMeals -> {
+                                    if (isViewActive && mealOfTheDay != null) {
+                                        executorService.execute(() -> {
+                                            boolean isFav = mealDatabase.getMealDao().isFavorite(mealOfTheDay.getIdMeal());
+                                            requireActivity().runOnUiThread(() -> {
+                                                if (isViewActive) {
+                                                    heartIcon.setImageResource(isFav ? R.drawable.fav : R.drawable.heart);
+                                                }
+                                            });
+                                        });
+                                    }
+                                });
+                    }
                     mealImage.setOnClickListener(v -> {
                         Intent intent = new Intent(requireContext(), MealActivity.class);
                         intent.putExtra("mealId", mealOfTheDay.getIdMeal());
@@ -236,6 +264,12 @@ public class HomeFragment extends Fragment {
                     holder.heartIcon.setImageResource(isFav ? R.drawable.fav : R.drawable.heart);
 
                     holder.heartIcon.setOnClickListener(v -> {
+                        FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+                        if (user == null) {
+                            startActivity(new Intent(requireContext(), FirstTimeActivity.class));
+                            Toast.makeText(requireContext(), "You must login first", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                         executorService.execute(() -> {
                             boolean nowFav = mealDatabase.getMealDao().isFavorite(meal.getIdMeal());
                             if (nowFav) {

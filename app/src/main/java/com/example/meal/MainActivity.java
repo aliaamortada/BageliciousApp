@@ -1,5 +1,6 @@
 package com.example.meal;
 
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -23,11 +24,19 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-        // **ADDED**: Set up BottomNavigationView
+        // Set up BottomNavigationView
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
             Fragment selectedFragment = null;
             int id = item.getItemId();
+
+            boolean isLoggedIn = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null;
+
+            if ((id == R.id.calender || id == R.id.favourite || id == R.id.account) && !isLoggedIn) {
+                startActivity(new Intent(MainActivity.this, FirstTimeActivity.class));
+                android.widget.Toast.makeText(MainActivity.this, "You must login first", android.widget.Toast.LENGTH_SHORT).show();
+                return false;
+            }
 
             if (id == R.id.home) {
                 selectedFragment = new HomeFragment();
@@ -54,40 +63,6 @@ public class MainActivity extends AppCompatActivity {
             bottomNavigationView.setSelectedItemId(R.id.home);
         }
     }
-
-
-    /*
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.bottom_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        Fragment selectedFragment = null;
-        int id = item.getItemId();
-
-        if (id == R.id.home) {
-            selectedFragment = new HomeFragment();
-        } else if (id == R.id.search) {
-            selectedFragment = new SearchFragment();
-        } else if (id == R.id.calender) {
-            selectedFragment = new CalenderFragment();
-        } else if (id == R.id.favourite) {
-            selectedFragment = new FavouriteFragment();
-        } else if (id == R.id.account) {
-            selectedFragment = new AccountFragment();
-        }
-
-        if (selectedFragment != null) {
-            loadFragment(selectedFragment);
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-    */
 
     // Helper method to load fragments
     private void loadFragment(Fragment fragment) {

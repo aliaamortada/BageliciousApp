@@ -32,7 +32,6 @@ public class SignUpActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i("ay7aga", "onCreate: ");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
@@ -76,6 +75,10 @@ public class SignUpActivity extends AppCompatActivity {
                 Toast.makeText(SignUpActivity.this, "Please enter both email and password", Toast.LENGTH_SHORT).show();
                 return;
             }
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                Toast.makeText(SignUpActivity.this, "Invalid email format", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(SignUpActivity.this, task -> {
@@ -87,7 +90,9 @@ public class SignUpActivity extends AppCompatActivity {
                                 finish();
                             }
                         } else {
-                            Toast.makeText(SignUpActivity.this, "Sign-Up failed. Please try again.", Toast.LENGTH_SHORT).show();
+                            String errorMessage = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                            Toast.makeText(SignUpActivity.this, "Sign-Up failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                            Log.e("SignUpError", "Sign-Up failed", task.getException());
                         }
                     });
         });

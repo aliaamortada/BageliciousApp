@@ -28,6 +28,7 @@ import com.example.meal.model.pojo.meal.Meal;
 import com.example.meal.model.pojo.meal.MealResponse;
 import com.example.meal.model.pojo.meal.PlanMeal;
 import com.example.meal.network.meal.MealService;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -101,6 +102,12 @@ public class MealActivity extends AppCompatActivity {
         });
 
         btnFavorite.setOnClickListener(v -> {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                startActivity(new Intent(this, FirstTimeActivity.class));
+                Toast.makeText(this, "You must login first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             if (currentMeal == null) return;
             Executors.newSingleThreadExecutor().execute(() -> {
                 boolean isFav = mealDatabase.getMealDao().isFavorite(currentMeal.getIdMeal());
@@ -116,6 +123,11 @@ public class MealActivity extends AppCompatActivity {
 
         // Calendar button: show date picker and save to planned meals
         btnCalendar.setOnClickListener(v -> {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                startActivity(new Intent(this, FirstTimeActivity.class));
+                Toast.makeText(this, "You must login first", Toast.LENGTH_SHORT).show();
+                return;
+            }
             Calendar today = Calendar.getInstance();
             DatePickerDialog datePickerDialog = new DatePickerDialog(
                     this,R.style.CustomDatePicker,

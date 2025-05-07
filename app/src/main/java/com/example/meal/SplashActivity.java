@@ -29,7 +29,7 @@ public class SplashActivity extends AppCompatActivity {
 
         // Delay to move to main activity
         new Handler().postDelayed(() -> {
-            startActivity(new Intent(SplashActivity.this, MainActivity.class));
+            startActivity(new Intent(SplashActivity.this, FirstTimeActivity.class));
             finish();
         }, 3000);
 

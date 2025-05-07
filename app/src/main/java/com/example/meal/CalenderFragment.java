@@ -1,6 +1,7 @@
 package com.example.meal;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -155,7 +156,11 @@ public class CalenderFragment extends Fragment {
                     }
                 });
             });
-
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, MealActivity.class);
+                intent.putExtra("mealId", meal.getIdMeal());
+                context.startActivity(intent);
+            });
         }
 
         @Override
