@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:padding="16dp"
     android:background="@drawable/pattern"
-    tools:context=".HomeFragment">
+    tools:context=".home.view.HomeFragment">
 
     <!-- App Logo in Top-Left -->
     <ImageView

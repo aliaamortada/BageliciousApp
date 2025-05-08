@@ -12,6 +12,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -29,7 +30,11 @@ public class SplashActivity extends AppCompatActivity {
 
         // Delay to move to main activity
         new Handler().postDelayed(() -> {
-            startActivity(new Intent(SplashActivity.this, FirstTimeActivity.class));
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                startActivity(new Intent(SplashActivity.this, MainActivity.class)); // Logged in
+            } else {
+                startActivity(new Intent(SplashActivity.this, FirstTimeActivity.class)); //Not logged in
+            }
             finish();
         }, 3000);
 

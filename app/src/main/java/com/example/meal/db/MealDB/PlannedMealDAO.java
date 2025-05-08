@@ -25,4 +25,7 @@ public interface PlannedMealDAO {
 
     @Query("DELETE FROM planned_meals_table WHERE date = :date AND plannedMealID = :mealId")
     void deletePlannedMeal(String date, String mealId);
+    @Query("SELECT * FROM planned_meals_table WHERE plannedMealID = :id LIMIT 1")
+    PlanMeal getPlannedMealById(String id);
+
 }

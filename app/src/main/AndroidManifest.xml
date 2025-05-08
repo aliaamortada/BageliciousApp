@@ -14,12 +14,21 @@
         android:theme="@style/Theme.Meal"
         tools:targetApi="31">
         <activity
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:forceDarkAllowed="false"
             android:name=".MealActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:forceDarkAllowed="false"
             android:name=".FirstTimeActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:forceDarkAllowed="false"
             android:name=".SignUpActivity"
             android:exported="false" />
 
@@ -28,9 +37,15 @@
             android:value="@integer/google_play_services_version" />
 
         <activity
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:forceDarkAllowed="false"
             android:name=".LoginActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:forceDarkAllowed="false"
             android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>

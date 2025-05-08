@@ -1,8 +1,11 @@
 package com.example.meal;
 
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.meal.db.MealDB.MealDataBase;
 import com.example.meal.db.MealDB.MealLocalDataSourceImpl;
+import com.example.meal.db.MealDB.PlannedMealDataBase;
 import com.example.meal.model.pojo.ingrediant.Ingrediant;
 import com.example.meal.model.pojo.meal.FavMeal;
 import com.example.meal.model.pojo.meal.Meal;
@@ -50,6 +54,7 @@ public class MealActivity extends AppCompatActivity {
 
     private MealService mealService;
     private MealDataBase mealDatabase;
+    private PlannedMealDataBase plannedMealDataBase;
 
     private Meal currentMeal;
     private MealInfoAdapter mealInfoAdapter;
@@ -69,6 +74,7 @@ public class MealActivity extends AppCompatActivity {
 
         // Setup DB and Retrofit
         mealDatabase = MealDataBase.getInstance(this);
+        plannedMealDataBase = PlannedMealDataBase.getInstance(this);
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://www.themealdb.com/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -84,7 +90,6 @@ public class MealActivity extends AppCompatActivity {
 
         // Listeners
         // close listener return to previous page also save and return the state of isFav
-        btnClose.setOnClickListener(v -> finish());
         btnClose.setOnClickListener(v -> {
             Executors.newSingleThreadExecutor().execute(() -> {
                 boolean isFav = false;
@@ -162,11 +167,44 @@ public class MealActivity extends AppCompatActivity {
 
         String mealId = getIntent().getStringExtra("mealId");
         Log.d("MealActivity", "Received Meal ID: " + mealId); // ✅ Log the received ID
+        //  Handle offline/online modes
         if (mealId != null) {
-            loadMealDetails(mealId);
+            if (isInternetAvailable()) {
+                loadMealDetails(mealId); // online
+            } else {
+                loadMealFromLocalDB(mealId); // offline fallback
+            }
         }
     }
 
+    // Internet availability check
+    private boolean isInternetAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm != null ? cm.getActiveNetworkInfo() : null;
+        return activeNetwork != null && activeNetwork.isConnected();
+    }
+
+    //  Fallback method for offline support
+    private void loadMealFromLocalDB(String id) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            FavMeal favMeal = mealDatabase.getMealDao().getMealById(id);
+            PlanMeal planMeal = plannedMealDataBase.plannedMealDAO().getPlannedMealById(id);
+
+            if (favMeal != null) {
+                currentMeal = favMeal;
+            } else if (planMeal != null) {
+                currentMeal = planMeal;
+            }
+
+            if (currentMeal != null) {
+                runOnUiThread(() -> displayMealData(currentMeal));
+            } else {
+                runOnUiThread(() ->
+                        Toast.makeText(MealActivity.this, "Meal not available offline", Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
     private void loadMealDetails(String id) {
         mealService.getMealByID(id).enqueue(new Callback<MealResponse>() {
             @Override

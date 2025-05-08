@@ -24,8 +24,9 @@ public interface MealDAO {
     void deleteFavoriteMeal(FavMeal meal); // CHANGED from deleteMeal
 
     @Query("SELECT * FROM favorite_meals_table WHERE favoriteMealID = :id LIMIT 1")
-    Meal getMealById(String id);
+    FavMeal getMealById(String id);
 
     @Query("SELECT EXISTS(SELECT 1 FROM favorite_meals_table WHERE favoriteMealID = :id)")
     boolean isFavorite(String id);
+
 }

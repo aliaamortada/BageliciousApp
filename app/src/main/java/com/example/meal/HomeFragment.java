@@ -103,10 +103,10 @@ public class HomeFragment extends Fragment {
 
     private void loadMealOfTheDay() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-               String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                           .format(new Date());
-               String savedDate = prefs.getString(KEY_DATE, null);
-               String savedId = prefs.getString(KEY_MEAL_ID, null);
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                .format(new Date());
+        String savedDate = prefs.getString(KEY_DATE, null);
+        String savedId = prefs.getString(KEY_MEAL_ID, null);
         boolean shouldUseCached = savedDate != null && savedDate.equals(today) && savedId != null;
         Call<MealResponse> call = shouldUseCached
                 ? mealService.getMealByID(savedId)
